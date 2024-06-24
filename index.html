@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Who Let the Dogs Out Timer</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Comic+Neue:wght@400;700&display=swap');
+        
+        :root {
+            --primary-color: #FF9800;
+            --secondary-color: #4CAF50;
+            --background-color: #FFF9C4;
+            --text-color: #333;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Comic Neue', cursive;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+            border: 5px solid var(--primary-color);
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        h1 {
+            font-family: 'Fredoka One', cursive;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            color: var(--primary-color);
+            text-shadow: 2px 2px 0px var(--secondary-color);
+        }
+
+        #timer {
+            font-family: 'Fredoka One', cursive;
+            font-size: 5em;
+            font-weight: 600;
+            margin: 20px 0;
+            color: var(--secondary-color);
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        input[type="number"], select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 10px;
+            border: 3px solid var(--primary-color);
+            background-color: white;
+            color: var(--text-color);
+            font-size: 1em;
+            font-family: 'Comic Neue', cursive;
+        }
+
+        #startButton {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.2em;
+            padding: 12px 30px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        #startButton:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        #progressBar {
+            width: 100%;
+            height: 20px;
+            background-color: #E0E0E0;
+            border-radius: 10px;
+            margin-top: 20px;
+            overflow: hidden;
+            border: 3px solid var(--primary-color);
+        }
+
+        #progressFill {
+            height: 100%;
+            background-color: var(--secondary-color);
+            width: 0%;
+            transition: width 0.1s linear;
+            border-radius: 7px;
+        }
+
+        .animal {
+            position: absolute;
+            font-size: 60px;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        #animalCounter {
+            font-size: 1.2em;
+            color: var(--secondary-color);
+            margin-top: 20px;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Who Let the Dogs Out?</h1>
+        <div class="input-group">
+            <label for="duration">Countdown Time (seconds):</label>
+            <input type="number" id="duration" min="1" max="3600" value="10">
+        </div>
+        <div class="input-group">
+            <label for="animalSelect">Choose your animal:</label>
+            <select id="animalSelect">
+                <option value="🐶">Dog</option>
+                <option value="🐱">Cat</option>
+                <option value="🐰">Rabbit</option>
+                <option value="🦊">Fox</option>
+                <option value="🐼">Panda</option>
+            </select>
+        </div>
+        <div id="timer">00:00</div>
+        <button id="startButton">Release the Animals!</button>
+        <div id="progressBar"><div id="progressFill"></div></div>
+        <div id="animalCounter">Animals: 0</div>
+    </div>
+
+    <audio id="timerEndSound" src="https://cdn.freesound.org/previews/686/686952_13869318-lq.mp3"></audio>
+
+    <script>
+        const timer = document.getElementById('timer');
+        const startButton = document.getElementById('startButton');
+        const timerEndSound = document.getElementById('timerEndSound');
+        const progressFill = document.getElementById('progressFill');
+        const animalCounter = document.getElementById('animalCounter');
+        const durationInput = document.getElementById('duration');
+        const animalSelect = document.getElementById('animalSelect');
+        let countdown;
+        let animalCount = 0;
+
+        startButton.addEventListener('click', startTimer);
+
+        function startTimer() {
+            let duration = parseInt(durationInput.value);
+            let time = duration;
+            startButton.disabled = true;
+            animalCount = 0;
+            updateAnimalCounter();
+            
+            countdown = setInterval(() => {
+                time -= 0.1;
+                if (time <= 0) {
+                    clearInterval(countdown);
+                    timer.textContent = "Time's Up!";
+                    releaseTheAnimals();
+                    startButton.disabled = false;
+                } else {
+                    updateTimerDisplay(time);
+                }
+                progressFill.style.width = `${(duration - time) / duration * 100}%`;
+                
+                // Randomly drop animals
+                if (Math.random() < 0.05) {
+                    dropAnimal();
+                }
+            }, 100);
+        }
+
+        function updateTimerDisplay(time) {
+            let seconds = Math.floor(time % 60);
+            let tenths = Math.floor((time % 1) * 10);
+            timer.textContent = `${seconds.toString().padStart(2, '0')}.${tenths}`;
+        }
+
+        function releaseTheAnimals() {
+            timerEndSound.play().catch(e => console.log("Audio play failed:", e));
+            
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    dropAnimal();
+                }, i * 100);
+            }
+        }
+
+        function dropAnimal() {
+            const animal = document.createElement('div');
+            animal.textContent = animalSelect.value;
+            animal.className = 'animal';
+            animal.style.left = `${Math.random() * 100}vw`;
+            animal.style.top = `${Math.random() * 100}vh`;
+            document.body.appendChild(animal);
+
+            setTimeout(() => {
+                animal.remove();
+            }, 2000);
+
+            animalCount++;
+            updateAnimalCounter();
+        }
+
+        function updateAnimalCounter() {
+            animalCounter.textContent = `Animals: ${animalCount}`;
+        }
+
+        // Preload sound
+        window.addEventListener('load', () => {
+            timerEndSound.load();
+        });
+    </script>
+</body>
+</html>
